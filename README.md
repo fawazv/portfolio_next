@@ -2,6 +2,8 @@
 
 A modern, high-performance portfolio website built with Next.js 16, Tailwind CSS v4, and React Three Fiber.
 
+[**Live Demo**](https://portfolio-next-three-rose-78.vercel.app/)
+
 ![Portfolio Preview](https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4)
 
 ## 🚀 Tech Stack
