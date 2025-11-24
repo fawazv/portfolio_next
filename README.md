@@ -27,8 +27,8 @@ A modern, high-performance portfolio website built with Next.js 16, Tailwind CSS
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/yourusername/portfolio.git
-    cd portfolio
+    git clone https://github.com/fawazv/portfolio_next.git
+    cd portfolio_next
     ```
 
 2.  **Install dependencies:**
