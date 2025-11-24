@@ -15,6 +15,8 @@ const education = [
   }
 ];
 
+import InteractiveShape from '@/components/3d/InteractiveShape';
+
 export default function AboutSection() {
   return (
     <section id="about" className="h-screen w-full snap-start flex items-center justify-center relative overflow-hidden bg-transparent z-10">
@@ -58,11 +60,7 @@ export default function AboutSection() {
           viewport={{ once: true }}
           className="relative h-[400px] w-full rounded-3xl bg-zinc-900/30 border border-white/5 backdrop-blur-sm flex items-center justify-center overflow-hidden"
         >
-           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10" />
-           <div className="text-center space-y-2 z-10">
-             <span className="text-6xl font-bold text-white">2+</span>
-             <p className="text-zinc-400 uppercase tracking-widest text-sm">Years Experience</p>
-           </div>
+           <InteractiveShape />
         </motion.div>
 
       </div>
