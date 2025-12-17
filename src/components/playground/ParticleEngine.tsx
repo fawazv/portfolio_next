@@ -8,6 +8,7 @@ interface ParticleEngineProps {
     isOpen: boolean; // Hands open/tension -> expansion
     isClosed: boolean; // Hands closed/fist -> contraction
     distance: number; // Distance between hands
+    scale?: number;   // Distance from camera (Hand scale)
     center: { x: number, y: number }; // Center point between hands
   };
   template: string;
@@ -58,145 +59,139 @@ export default function ParticleEngine({ gestureState, template, color }: Partic
         sizes: siz,
         colors: col
     };
-  }, []); // Only run once on mount, color changes handled in uniform/frame
+  }, []); // Only run once on mount
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uSize: { value: 2.0 }, // Base size
+    uSize: { value: 0.4 }, // Reduced size to prevent sticky look
     uScale: { value: 1.0 },
   }), []);
 
-  // Update target positions based on template
-  const targetPositions = useMemo(() => {
-      const targets = new Float32Array(PARTICLE_COUNT * 3);
-      // We can generate different shapes here. 
-      // For simplicity/performance, we'll calculate target positions on the fly or pre-calc here.
-      // Let's pre-calc strict shapes for 'heart', 'flower', etc. to lerp towards.
-      return targets;
-  }, [template]); // Re-calc when template changes? Or handle in loop.
+  // Target positions (Float32Array) to avoid re-calculation and GC every frame
+  const targetPositions = useRef(new Float32Array(PARTICLE_COUNT * 3));
 
-  // Helper to generate shapes
-  const getTargetPosition = (i: number, template: string) => {
-    const ix = i; 
-    let x = 0, y = 0, z = 0;
-    
-    switch (template) {
-        case 'heart': {
-             // Heart shape formula
-             const t = (ix / PARTICLE_COUNT) * Math.PI * 2;
-             // Lissajous-ish or explicit heart curve
-             // x = 16sin^3(t)
-             // y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
-             // Need to distribute points inside the volume or on surface
-             // Let's use rejection sampling or a parameterized surface for 3D heart
-             const phi = Math.acos(1 - 2 * Math.random());
-             const theta = Math.sqrt(Math.PI * PARTICLE_COUNT) * phi;
-             
-             // Simple approx: 
-             // Scale down to fit viewport
-             const r = 1.5;
-             x = r * 16 * Math.pow(Math.sin(theta), 3);
-             z = r * (13 * Math.cos(theta) - 5 * Math.cos(2*theta) - 2 * Math.cos(3*theta) - Math.cos(4*theta));
-             y = (Math.random() - 0.5) * 2; // Extrude slightly
-             
-             // Actually, 2D heart projected + depth noise is easier visually
-             const t2 = Math.random() * Math.PI * 2;
-             const r2 = Math.sqrt(Math.random());
-             // x = r2 * 16 * sin^3(t2)
-             // y = r2 * (13cos(t2)...)
-             x = (16 * Math.pow(Math.sin(t2), 3)) / 10;
-             y = (13 * Math.cos(t2) - 5 * Math.cos(2 * t2) - 2 * Math.cos(3 * t2) - Math.cos(4 * t2)) / 10;
-             z = (Math.random() - 0.5) * 2;
-             break;
-        }
-        case 'saturn': {
-            // Planet + Ring
-            if (i < PARTICLE_COUNT * 0.3) {
-                 // Planet sphere
+  // Recalculate targets only when template changes
+  useEffect(() => {
+     const targets = targetPositions.current;
+     for(let i=0; i<PARTICLE_COUNT; i++) {
+        const idx = i * 3;
+        let x = 0, y = 0, z = 0;
+        
+        switch (template) {
+            case 'heart': {
+                 // 2D heart projected + depth noise
+                 const t2 = Math.random() * Math.PI * 2;
+                 x = (16 * Math.pow(Math.sin(t2), 3)) / 10;
+                 y = (13 * Math.cos(t2) - 5 * Math.cos(2 * t2) - 2 * Math.cos(3 * t2) - Math.cos(4 * t2)) / 10;
+                 z = (Math.random() - 0.5) * 2;
+                 break;
+            }
+            case 'saturn': {
+                if (i < PARTICLE_COUNT * 0.3) {
+                     const u = Math.random();
+                     const v = Math.random();
+                     const theta = 2 * Math.PI * u;
+                     const phi = Math.acos(2 * v - 1);
+                     const r = 1.0;
+                     x = r * Math.sin(phi) * Math.cos(theta);
+                     y = r * Math.sin(phi) * Math.sin(theta);
+                     z = r * Math.cos(phi);
+                } else {
+                     const th = Math.random() * Math.PI * 2;
+                     const dist = 1.6 + Math.random() * 0.8;
+                     x = dist * Math.cos(th);
+                     z = dist * Math.sin(th);
+                     y = (Math.random() - 0.5) * 0.1;
+                     
+                     // Tilt
+                     const tilt = 0.4;
+                     const y_new = y * Math.cos(tilt) - x * Math.sin(tilt);
+                     const x_new = y * Math.sin(tilt) + x * Math.cos(tilt);
+                     x = x_new;
+                     y = y_new;
+                }
+                break;
+            }
+            case 'flower': {
+                const k = 4;
+                const theta = (i / PARTICLE_COUNT) * Math.PI * 2 * 50;
+                const rad = Math.cos(k * theta) * 2 + 0.5;
+                x = rad * Math.cos(theta);
+                y = rad * Math.sin(theta);
+                z = (Math.random() - 0.5);
+                break;
+            }
+            case 'buddha': {
+                if (i < PARTICLE_COUNT * 0.15) {
+                    const r = 0.5;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.random() * Math.PI;
+                    x = r * Math.sin(phi) * Math.cos(theta);
+                    y = r * Math.sin(phi) * Math.sin(theta) + 1.2;
+                    z = r * Math.cos(phi);
+                } else {
+                     const h = 2.0; 
+                     const r_base = 1.5;
+                     const y_pos = (Math.random() * h) - 1.0;
+                     const r_at_y = r_base * (1 - (y_pos + 1.0)/h);
+                     const theta = Math.random() * Math.PI * 2;
+                     x = r_at_y * Math.cos(theta);
+                     y = y_pos;
+                     z = r_at_y * Math.sin(theta);
+                }
+                break;
+            }
+            case 'fireworks': {
                  const u = Math.random();
                  const v = Math.random();
                  const theta = 2 * Math.PI * u;
                  const phi = Math.acos(2 * v - 1);
-                 const r = 1.0;
+                 const r = 2.5 + Math.random(); 
                  x = r * Math.sin(phi) * Math.cos(theta);
                  y = r * Math.sin(phi) * Math.sin(theta);
                  z = r * Math.cos(phi);
-            } else {
-                 // Ring
-                 const angle = (i / (PARTICLE_COUNT * 0.7)) * Math.PI * 2 * 20; // Multiple loops? no just random
-                 const dist = 1.6 + Math.random() * 0.8;
-                 const th = Math.random() * Math.PI * 2;
-                 x = dist * Math.cos(th);
-                 z = dist * Math.sin(th);
-                 y = (Math.random() - 0.5) * 0.1;
-                 
-                 // Tilt
-                 const tilt = 0.4;
-                 const y_new = y * Math.cos(tilt) - x * Math.sin(tilt);
-                 const x_new = y * Math.sin(tilt) + x * Math.cos(tilt);
-                 x = x_new;
-                 y = y_new;
+                 break;
             }
-            break;
-        }
-        case 'flower': {
-            // Rose curve: r = cos(k * theta)
-            const k = 4; // petals
-            const theta = (i / PARTICLE_COUNT) * Math.PI * 2 * 50; // Scatter
-            const rad = Math.cos(k * theta) * 2 + 0.5; // +0.5 to fill center
-            x = rad * Math.cos(theta);
-            y = rad * Math.sin(theta);
-            z = (Math.random() - 0.5);
-            break;
-        }
-        case 'buddha': {
-            // Approximate with a simple seated triangle/stack for now as no mesh data
-            // Head
-            if (i < PARTICLE_COUNT * 0.15) {
-                const r = 0.5;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.random() * Math.PI;
-                x = r * Math.sin(phi) * Math.cos(theta);
-                y = r * Math.sin(phi) * Math.sin(theta) + 1.2;
-                z = r * Math.cos(phi);
-            } else {
-                // Body (Cone-ish)
-                 const h = 2.0; 
-                 const r_base = 1.5;
-                 const y_pos = (Math.random() * h) - 1.0;
-                 const r_at_y = r_base * (1 - (y_pos + 1.0)/h);
-                 const theta = Math.random() * Math.PI * 2;
-                 x = r_at_y * Math.cos(theta);
-                 y = y_pos;
-                 z = r_at_y * Math.sin(theta);
+            case 'sphere': {
+                 // Fibonacci Sphere for even distribution
+                 const goldenRatio = (1 + 5**0.5) / 2;
+                 const i2 = i + 1; // 1-based index
+                 const theta = 2 * Math.PI * i2 / goldenRatio;
+                 const phi = Math.acos(1 - 2 * (i2 + 0.5) / PARTICLE_COUNT);
+                 const r = 2.0 + (Math.random() - 0.5) * 0.5;
+                 x = r * Math.sin(phi) * Math.cos(theta);
+                 y = r * Math.sin(phi) * Math.sin(theta);
+                 z = r * Math.cos(phi);
+                 break;
             }
-            break;
+            case 'cube': {
+                // Random point inside a cube
+                const size = 2.5; 
+                x = (Math.random() - 0.5) * size;
+                y = (Math.random() - 0.5) * size;
+                z = (Math.random() - 0.5) * size;
+                
+                // Optional: Make it a wireframe cube/hollow? 
+                // Let's stick to solid volume for now as requested "Structured, solid"
+                break;
+            }
+            default: { 
+                 const u = Math.random();
+                 const v = Math.random();
+                 const theta = 2 * Math.PI * u;
+                 const phi = Math.acos(2 * v - 1);
+                 const r = 3 * Math.cbrt(Math.random());
+                 x = r * Math.sin(phi) * Math.cos(theta);
+                 y = r * Math.sin(phi) * Math.sin(theta);
+                 z = r * Math.cos(phi);
+            }
         }
-        case 'fireworks': {
-             // Explosion sphere
-             const u = Math.random();
-             const v = Math.random();
-             const theta = 2 * Math.PI * u;
-             const phi = Math.acos(2 * v - 1);
-             const r = 2.5 + Math.random(); 
-             x = r * Math.sin(phi) * Math.cos(theta);
-             y = r * Math.sin(phi) * Math.sin(theta);
-             z = r * Math.cos(phi);
-             break;
-        }
-        default: { // Cloud/Random
-             const u = Math.random();
-             const v = Math.random();
-             const theta = 2 * Math.PI * u;
-             const phi = Math.acos(2 * v - 1);
-             const r = 3 * Math.cbrt(Math.random());
-             x = r * Math.sin(phi) * Math.cos(theta);
-             y = r * Math.sin(phi) * Math.sin(theta);
-             z = r * Math.cos(phi);
-        }
-    }
-    return new THREE.Vector3(x, y, z);
-  }
+        
+        targets[idx] = x;
+        targets[idx+1] = y;
+        targets[idx+2] = z;
+     }
+  }, [template]);
 
   // Current positions of particles
   const currentPositions = useRef(new Float32Array(PARTICLE_COUNT * 3));
@@ -211,90 +206,86 @@ export default function ParticleEngine({ gestureState, template, color }: Partic
      }
   }, [positions]);
 
+
+
   useFrame((state, delta) => {
     if (!meshRef.current) return;
     
     uniforms.uTime.value += delta;
     
-    // Update colors smoothly
-    const targetC = new THREE.Color(color);
-    // This is expensive to do per frame for all particles on CPU. 
-    // Ideally we pass color as uniform since all particles have same base color?
-    // Yes, let's optimize: use uniform for base color and attribute for variation.
-    // But shader uses 'color' attribute. We can write to attribute sparingly.
-    // For now, let's rely on the additive blending and vertex colors set initially 
-    // mixed with a global uniform color if we wanted, but the prompt says "updates particle color".
-    // I will simply re-write valid colors in the attribute buffer if color changes significantly? 
-    // Or better: update a uniform `uColor` and mix it in shader.
-    // For simplicity with provided shader: update VBO.
-    const colorsAttr = meshRef.current.geometry.attributes.color;
-    // We'll skip per-frame color update on CPU for performance, 
-    // only update when prop changes. Handled by a useEffect below if needed.
-    
     // Logic for particles
     const positionsAttr = meshRef.current.geometry.attributes.position;
     const array = positionsAttr.array as Float32Array;
+    const targets = targetPositions.current; // Read from pre-calc array
     
-    const { isOpen, isClosed, distance, center } = gestureState;
+    const { isOpen, isClosed, distance, center, scale: handScale } = gestureState;
+
+    // --- Camera Zoom Logic (Butter Smooth) ---
+    // Base distance ~5.0
+    const targetZ = 5.0 / (handScale || 1.0);
+    const clampedZ = THREE.MathUtils.clamp(targetZ, 2.0, 10.0);
+    // Heavy lerp for cinematic zoom
+    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, clampedZ, 0.02);
     
+    // --- Rotation Logic (Butter Smooth) ---
+    // DISABLED as per user request to improve movement feel
+    // const targetRotY = (center.x - 0.5) * 2.0; 
+    // const targetRotX = (center.y - 0.5) * 2.0; 
+
+    // Apply rotation to the whole mesh group
+    // meshRef.current.rotation.y = THREE.MathUtils.lerp(meshRef.current.rotation.y, targetRotY, 0.02);
+    // meshRef.current.rotation.x = THREE.MathUtils.lerp(meshRef.current.rotation.x, targetRotX, 0.02);
+
     // Interaction coefficients
-    const attraction = isClosed ? 2.5 : 0.5; // Strong attraction when closed
-    const repulsion = isOpen ? 2.0 : 0.0; // Repulsion when open
+    // Boosted for snappy response (Fixes "slowly changing shape")
+    const attraction = isClosed ? 6.0 : 3.0; // Strong implosion (6.0), Fast shape form (3.0)
+    const repulsion = isOpen ? 4.0 : 0.0; // Strong explosion
     const spread = distance * 2.0; // Global spread based on hand distance
     
-    // Mouse fallback if no hands? 
-    // Engine receives gestureState, which can be driven by mouse in parent if needed.
+    // Convert gesture center to world space
+    // Sensitivity reset to 1.0x (Standard)
+    const cx = (center.x - 0.5) * viewport.width; 
+    const cy = -(center.y - 0.5) * viewport.height;
     
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const idx = i * 3;
         
-        // Target pos
-        const seed = getTargetPosition(i, template);
-        
-        // Current pos
-        let x = array[idx];
-        let y = array[idx + 1];
-        let z = array[idx + 2];
-        
         // Physics
         // 1. Seek target (Template shape)
-        const dx = seed.x * (1 + spread * 0.5) - x;
-        const dy = seed.y * (1 + spread * 0.5) - y;
-        const dz = seed.z * (1 + spread * 0.5) - z;
+        // Apply scaling based on fist/open state
+        let scale = 1.0;
+        if (isClosed) scale = 0.5; // Shrink when closed
+        if (isOpen) scale = 1.2;   // Expand when open
+
+        const tx = (targets[idx] * scale) + cx; 
+        const ty = (targets[idx+1] * scale) + cy;
+        const tz = (targets[idx+2] * scale);
         
-        const distSq = dx*dx + dy*dy + dz*dz;
-        // const dist = Math.sqrt(distSq);
+        // Current pos
+        const x = array[idx];
+        const y = array[idx + 1];
+        const z = array[idx + 2];
+
+        const dx = tx - x;
+        const dy = ty - y;
+        const dz = tz - z;
         
-        // Force applied
-        let fx = dx * 1.5; // Spring strength to target
-        let fy = dy * 1.5;
-        let fz = dz * 1.5;
+        // Spring force to target
+        let fx = dx * attraction; 
+        let fy = dy * attraction;
+        let fz = dz * attraction;
         
-        // 2. Gesture Influence (Center)
-        // If closed, suck into center. If open, explode directly out from center.
-        // Convert gesture center (screen space -1 to 1) to world space approx
-        // viewport.width is available
-        const cx = (center.x - 0.5) * viewport.width; 
-        const cy = -(center.y - 0.5) * viewport.height;
-        
+        // 2. Gesture Influence (Direct Center)
         const gdx = x - cx;
         const gdy = y - cy;
-        const gdz = z - 0; // Assume interaction plane at z=0
+        const gdz = z - 0;
         
         const gDistSq = gdx*gdx + gdy*gdy + gdz*gdz;
         const gDist = Math.sqrt(gDistSq) + 0.01;
         
-        if (isClosed) {
-             // Attraction to center (black hole)
-             const force = 10.0 / gDist; 
-             fx -= gdx * force;
-             fy -= gdy * force;
-             fz -= gdz * force;
-        }
-        
         if (isOpen) {
-             // Repulsion from center (explosion)
-            const force = 20.0 / (gDist + 0.1);
+             // Repulsion (Explosion)
+             const force = 15.0 / (gDist + 0.1);
              fx += gdx * force;
              fy += gdy * force;
              fz += gdz * force;
@@ -310,7 +301,7 @@ export default function ParticleEngine({ gestureState, template, color }: Partic
         velocities.current[idx+2] += fz * delta;
         
         // Dampening
-        const damp = 0.92;
+        const damp = 0.92; 
         velocities.current[idx] *= damp;
         velocities.current[idx+1] *= damp;
         velocities.current[idx+2] *= damp;

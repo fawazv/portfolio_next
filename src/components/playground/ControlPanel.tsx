@@ -1,22 +1,26 @@
+
 import { motion } from 'framer-motion';
-import { Camera, CameraOff, Palette, Settings2, Sparkles, Heart, Flower2, Orbit, Smile } from 'lucide-react';
+import { Camera, CameraOff, Palette, Settings2, Sparkles, Heart, Flower2, Orbit, Smile, Globe, HelpCircle } from 'lucide-react';
 
 interface ControlPanelProps {
+  isCameraActive: boolean;
+  onToggleCamera: () => void;
+  currentTemplate: string;
   onTemplateChange: (template: string) => void;
   onColorChange: (color: string) => void;
-  onToggleCamera: () => void;
-  isCameraActive: boolean;
-  currentTemplate: string;
+  onShowTutorial: () => void;
 }
 
 export default function ControlPanel({
+  isCameraActive,
+  onToggleCamera,
+  currentTemplate,
   onTemplateChange,
   onColorChange,
-  onToggleCamera,
-  isCameraActive,
-  currentTemplate,
+  onShowTutorial,
 }: ControlPanelProps) {
   const templates = [
+    { id: 'sphere', icon: Globe, label: 'Sphere' },
     { id: 'heart', icon: Heart, label: 'Love' },
     { id: 'flower', icon: Flower2, label: 'Nature' },
     { id: 'saturn', icon: Orbit, label: 'Cosmos' },
@@ -37,22 +41,39 @@ export default function ControlPanel({
     <motion.div 
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="absolute top-4 right-4 z-50 p-4 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 w-64 text-white font-sans"
+      className="fixed top-4 right-4 z-[9999] p-4 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 w-64 text-white font-sans pointer-events-auto"
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Settings2 size={16} />
           Controls
         </h3>
+        <div className="flex items-center gap-2">
         <button
           onClick={onToggleCamera}
-          className={`p-2 rounded-lg transition-colors ${
-            isCameraActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-          }`}
-          title="Toggle Camera"
+          className={`
+            p-3 rounded-full transition-all duration-300 flex items-center justify-center gap-2
+            ${isCameraActive 
+              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 ring-1 ring-red-500/50' 
+              : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 ring-1 ring-cyan-500/50'
+            }
+          `}
+          title={isCameraActive ? "Stop Camera" : "Start Camera"}
         >
-          {isCameraActive ? <Camera size={18} /> : <CameraOff size={18} />}
+          {isCameraActive ? <CameraOff size={20} /> : <Camera size={20} />}
+          <span className="text-sm font-medium hidden md:block">
+            {isCameraActive ? 'Stop' : 'Start'}
+          </span>
         </button>
+
+        <button
+          onClick={onShowTutorial}
+          className="p-3 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
+          title="Gestures Help"
+        >
+          <HelpCircle size={20} />
+        </button>
+      </div>
       </div>
 
       <div className="mb-4">

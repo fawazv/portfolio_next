@@ -33,17 +33,31 @@ export class HandTracker {
     if (!this.handLandmarker) return; 
 
     const predict = async () => {
-      if (!this.video || this.video.paused || this.video.ended) return;
+      // Loop continuation condition
+      if (!this.video) return; // Stop if video ref removed
+      
+      requestAnimationFrame(predict);
 
+      if (this.video.paused || this.video.ended) return;
+
+      // Strict check for valid data
+      if (this.video.readyState < 2 || this.video.videoWidth < 1 || this.video.videoHeight < 1) {
+          return;
+      }
+
+      const now = performance.now();
       if (this.video.currentTime !== this.lastVideoTime) {
         this.lastVideoTime = this.video.currentTime;
-        const startTimeMs = performance.now();
-        const results = this.handLandmarker?.detectForVideo(this.video, startTimeMs);
-        if (results) {
-            this.resultsCallback(results);
+        try {
+            const results = this.handLandmarker?.detectForVideo(this.video, now);
+            if (results) {
+                this.resultsCallback(results);
+            }
+        } catch (e) {
+             // Suppress crashes from MediaPipe internal checks
+            console.warn("HandTracker suppressed error:", e);
         }
       }
-      requestAnimationFrame(predict);
     };
     
     predict();
