@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useRef, useState, useEffect, useCallback, ReactNode, RefObject, MutableRefObject } from 'react';
 import { HandTracker } from '../components/playground/HandTracker';
 
 interface GestureState {
@@ -13,9 +13,9 @@ interface GestureState {
 interface HandInputContextType {
   isCameraActive: boolean;
   toggleCamera: () => Promise<void>;
-  videoRef: React.RefObject<HTMLVideoElement>;
-  gestureStateRef: React.MutableRefObject<GestureState>;
-  landmarksRef: React.MutableRefObject<any>; // Raw landmarks for specialized components like Scroll
+  videoRef: RefObject<HTMLVideoElement | null>;
+  gestureStateRef: MutableRefObject<GestureState>;
+  landmarksRef: MutableRefObject<any>; // Raw landmarks for specialized components like Scroll
 }
 
 const HandInputContext = createContext<HandInputContextType | null>(null);
