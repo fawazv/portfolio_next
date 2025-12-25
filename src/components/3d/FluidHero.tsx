@@ -69,17 +69,10 @@ function AnimatedSphere() {
 
 export default function FluidHero() {
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-transparent">
-      <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <AnimatedSphere />
-          <Environment preset="city" />
-        </Canvas>
-      </div>
+    <div className="relative w-full h-screen overflow-hidden bg-transparent pointer-events-none">
+       {/* Removed Canvas to reveal ParticleSystem */}
       
-      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full pointer-events-none">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

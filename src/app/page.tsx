@@ -7,7 +7,7 @@ import ParticleBackground from '@/components/3d/ParticleBackground';
 
 export default function Home() {
   return (
-    <main className="h-screen w-full overflow-y-scroll snap-y snap-mandatory bg-zinc-950 text-white selection:bg-cyan-500/30 scroll-smooth relative">
+    <main className="h-screen w-full overflow-y-scroll snap-y snap-mandatory bg-zinc-950 text-white selection:bg-primary/30 scroll-smooth relative">
       
       <ParticleBackground />
 

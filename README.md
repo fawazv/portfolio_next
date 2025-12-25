@@ -1,4 +1,4 @@
-# Mohammed Fawaz - Full Stack Developer Portfolio
+# 🔮 Next-Gen Portfolio
 
 A futuristic, interactive portfolio website built with **Next.js 16**, **Tailwind CSS v4**, and **React Three Fiber**. This project pushes the boundaries of web performance and interactivity, featuring advanced 3D particle systems, physics simulations, and **AI-powered hand gesture controls**.
 
