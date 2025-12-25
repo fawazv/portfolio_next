@@ -7,6 +7,7 @@ interface GestureState {
   distance: number;
   scale: number;
   center: { x: number; y: number };
+  isScrolling: boolean;
 }
 
 interface HandInputContextType {
@@ -30,7 +31,8 @@ export function HandInputProvider({ children }: { children: ReactNode }) {
     isClosed: false,
     distance: 0,
     scale: 1.0,
-    center: { x: 0.5, y: 0.5 }
+    center: { x: 0.5, y: 0.5 },
+    isScrolling: false
   });
   
   const landmarksRef = useRef<any>(null);
@@ -94,7 +96,8 @@ export function HandInputProvider({ children }: { children: ReactNode }) {
               isClosed,
               distance,
               scale: smoothedScaleRef.current,
-              center: { ...smoothedCenterRef.current }
+              center: { ...smoothedCenterRef.current },
+              isScrolling: gestureStateRef.current.isScrolling // Preserve value set by consumers
           });
       } else {
           landmarksRef.current = null;

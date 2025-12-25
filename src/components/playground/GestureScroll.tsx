@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useHandInput } from '../../hooks/useHandInput';
 
 export default function GestureScroll() {
-  const { landmarksRef, isCameraActive } = useHandInput();
+  const { landmarksRef, isCameraActive, gestureStateRef } = useHandInput();
   const isGrabbingRef = useRef(false);
   const lastScrollYRef = useRef(0);
   const smoothedScrollYRef = useRef(0);
@@ -48,13 +48,20 @@ export default function GestureScroll() {
           // Heuristic:
           // 1. Index & Middle Extended (Tip further than PIP)
           // 2. Ring & Pinky Closed (Tip closer than PIP or very close to wrist)
-          
+          // 3. Thumb Closed/Tucked (to distinguish strictly from "Thumbs Up" or "3-Finger")
+
           const isIndexExtended = dIndexTip > dIndexPIP;
           const isMiddleExtended = dMiddleTip > dMiddlePIP;
           const isRingClosed = dRingTip < dRingPIP || dRingTip < 0.15; // 0.15 backup
           const isPinkyClosed = dPinkyTip < dPinkyPIP || dPinkyTip < 0.15;
           
-          const isPeaceSign = isIndexExtended && isMiddleExtended && isRingClosed && isPinkyClosed;
+          // Thumb Check: Ensure it's not "Up" (Celebration) and not fully extended in a way that confuses
+          // We check if thumb tip is roughly below the Index knuckle or close to the hand center
+          const thumbTip = landmarks[4];
+          const indexMCP = landmarks[5]; // Knuckle
+          const isThumbFolded = thumbTip.y > indexMCP.y; // Thumb tip below index knuckle (Y increases downwards) OR just not "Up"
+          
+          const isPeaceSign = isIndexExtended && isMiddleExtended && isRingClosed && isPinkyClosed && isThumbFolded;
           
           if (isPeaceSign) {
               const mainContainer = document.querySelector('main');
@@ -65,6 +72,8 @@ export default function GestureScroll() {
                   lastScrollYRef.current = indexTip.y; // Track Index Finger
                   smoothedScrollYRef.current = indexTip.y; 
                   setIsScrolling(true);
+                  // Global Lock
+                  gestureStateRef.current.isScrolling = true;
                   
                   // Disable smooth scrolling on container for direct 1:1 control
                   if (mainContainer) {
@@ -72,6 +81,9 @@ export default function GestureScroll() {
                       mainContainer.style.scrollSnapType = 'none'; // DISABLE SNAPPING to prevent skipping
                   }
               } else {
+                  // Global Lock ensure
+                  gestureStateRef.current.isScrolling = true;
+
                   // Dragging
                   // Track Index Finger Tip
                   // Smooth the input to remove hand jitter
@@ -102,15 +114,17 @@ export default function GestureScroll() {
               }
               isGrabbingRef.current = false;
               setIsScrolling(false);
+              gestureStateRef.current.isScrolling = false;
           }
       } else {
           // No hand detected - release if needed
            if (isGrabbingRef.current) {
                isGrabbingRef.current = false;
                setIsScrolling(false);
+               gestureStateRef.current.isScrolling = false;
                const mainContainer = document.querySelector('main');
                if (mainContainer) mainContainer.style.scrollBehavior = 'smooth';
-           }
+           } 
       }
       
       rafId = requestAnimationFrame(loop);

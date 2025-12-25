@@ -10,6 +10,7 @@ interface ParticleEngineProps {
     distance: number; // Distance between hands
     scale?: number;   // Distance from camera (Hand scale)
     center: { x: number, y: number }; // Center point between hands
+    isScrolling?: boolean; // NEW: Lock flag
   };
   template: string;
   color: string;
@@ -218,7 +219,8 @@ export default function ParticleEngine({ gestureState, template, color }: Partic
     const array = positionsAttr.array as Float32Array;
     const targets = targetPositions.current; // Read from pre-calc array
     
-    const { isOpen, isClosed, distance, center, scale: handScale } = gestureState;
+    // De-structure lock
+    const { isOpen, isClosed, distance, center, scale: handScale, isScrolling } = gestureState;
 
     // --- Camera Zoom Logic (Butter Smooth) ---
     // Base distance ~5.0
@@ -238,8 +240,11 @@ export default function ParticleEngine({ gestureState, template, color }: Partic
 
     // Interaction coefficients
     // Boosted for snappy response (Fixes "slowly changing shape")
-    const attraction = isClosed ? 6.0 : 3.0; // Strong implosion (6.0), Fast shape form (3.0)
-    const repulsion = isOpen ? 4.0 : 0.0; // Strong explosion
+    // DISABLE if scrolling
+    const active = !isScrolling;
+    
+    const attraction = (isClosed && active) ? 6.0 : 3.0; // Strong implosion (6.0), Fast shape form (3.0)
+    const repulsion = (isOpen && active) ? 4.0 : 0.0; // Strong explosion
     const spread = distance * 2.0; // Global spread based on hand distance
     
     // Convert gesture center to world space

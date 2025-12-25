@@ -5,6 +5,8 @@ import ParticleEngine from './ParticleEngine';
 import ControlPanel from './ControlPanel';
 import GestureTutorial from './GestureTutorial';
 import GestureScroll from './GestureScroll';
+import GestureCelebration from './GestureCelebration';
+import GestureShapeControl from './GestureShapeControl';
 import { HandInputProvider, useHandInput } from '../../hooks/useHandInput';
 
 function ParticleSystemContent() {
@@ -148,6 +150,8 @@ function ParticleSystemContent() {
       
       {/* Scroll Logic Component (Independent) */}
       <GestureScroll />
+      <GestureCelebration />
+      <GestureShapeControl onTemplateChange={setTemplate} />
 
       {/* Render Controls via Portal to sit on top of everything (z-50 relative to body) */}
       {mounted && createPortal(
