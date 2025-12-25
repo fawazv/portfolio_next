@@ -34,8 +34,8 @@ export default function GestureTutorial({ isOpen, onClose }: GestureTutorialProp
               <div className="w-full aspect-square bg-black/50 rounded-xl mb-6 overflow-hidden border border-white/5 relative group">
                 {/* Image Container */}
                  <img 
-                   src="/assets/tutorials/gesture_guide.png" 
-                   alt="Pinch Gesture Guide" 
+                   src="/assets/tutorials/peace_gesture_guide.png" 
+                   alt="Peace Sign Gesture Guide" 
                    className="w-full h-full object-contain p-4 opacity-90 group-hover:opacity-100 transition-opacity"
                  />
                  
@@ -48,7 +48,7 @@ export default function GestureTutorial({ isOpen, onClose }: GestureTutorialProp
               </h3>
               
               <p className="text-white/60 text-sm mb-6 leading-relaxed">
-                Pinch your <span className="text-cyan-400 font-medium">Thumb</span> and <span className="text-cyan-400 font-medium">Index</span> finger together to "grab" the page, then move your hand Up or Down.
+                Make a <span className="text-cyan-400 font-medium">Peace Sign</span> to "grab" the page, then move your hand Up or Down.
               </p>
 
               <button
